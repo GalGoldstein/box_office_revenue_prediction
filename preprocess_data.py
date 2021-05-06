@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import ast
+from constants import *
 
 
 def _get_first_crew_member_per_job(crew_list: list, jobs: list):
@@ -70,6 +71,16 @@ def prepare_df_for_baseline(df: pd.DataFrame):
     return X, y
 
 
+def load_data_for_baseline_ml():
+    """
+    loads the train and test data ready for the baseline settings (features)
+    :return: (X_train, y_train), (X_test, y_test). X is pd.DataFrame, y is pd.Series
+    """
+    train_df = pd.read_csv(TRAIN_PATH, sep='\t')
+    test_df = pd.read_csv(TEST_PATH, sep='\t')
+    return prepare_df_for_baseline(train_df), prepare_df_for_baseline(test_df)
+
+
 if __name__ == '__main__':
-    train = pd.read_csv('hw1_data/train.tsv', sep='\t')
-    test = pd.read_csv('hw1_data/test.tsv', sep='\t')
+    train = pd.read_csv(TRAIN_PATH, sep='\t')
+    test = pd.read_csv(TEST_PATH, sep='\t')
