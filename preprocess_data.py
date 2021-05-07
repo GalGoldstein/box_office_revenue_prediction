@@ -56,8 +56,8 @@ def prepare_df_for_baseline(df: pd.DataFrame):
     # get 5 first cast members
     for i in range(5):
         X[f'cast_{i + 1}'] = X['cast'].apply(
-            lambda x: x[i].get('name', f'<no cast>')
-            if type(x) == list and len(x) > i and type(x[i]) == dict else f'<no cast>')
+            lambda x: x[i].get('name', '<no cast>')
+            if type(x) == list and len(x) > i and type(x[i]) == dict else '<no cast>')
 
     # get first crew member in each job for every job in `jobs`
     jobs = ['Executive Producer', 'Producer', 'Director', 'Screenplay', 'Author']
