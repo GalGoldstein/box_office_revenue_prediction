@@ -26,7 +26,7 @@ def prepare_df_for_baseline(df: pd.DataFrame):
     textual_columns = ['original_title', 'overview', 'tagline', 'title', 'Keywords']
     target_column = 'revenue'
 
-    y = df[target_column]
+    y = np.array(df[target_column])
     X = df.drop(columns_not_included + textual_columns + [target_column], axis=1)
 
     columns_to_dict = ['belongs_to_collection', 'genres', 'production_companies', 'cast', 'crew']

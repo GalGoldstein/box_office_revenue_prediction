@@ -3,7 +3,7 @@ import lightgbm as lgb
 
 
 def catboost_model(categorical_features):
-    model = cb.CatBoostRegressor(cat_features=categorical_features)
+    model = cb.CatBoostRegressor(iterations=800, cat_features=categorical_features)
     return model
 
 

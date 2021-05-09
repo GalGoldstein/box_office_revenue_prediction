@@ -24,8 +24,15 @@ def train_eval_baseline(model: str, scale_method: str):
     if scale_method == 'minmax':
         from sklearn.preprocessing import MinMaxScaler
         scaler = MinMaxScaler(feature_range=(0, 1))
-        y_train = np.array(y_train)
         y_train = scaler.fit_transform(y_train.reshape(-1, 1)).reshape(-1)
+
+    if scale_method == 'standard':
+        from sklearn.preprocessing import StandardScaler
+        scaler = StandardScaler()
+        y_train = scaler.fit_transform(y_train.reshape(-1, 1)).reshape(-1)
+
+    if scale_method == 'log':
+        y_train = np.log1p(y_train)
 
     if model == 'catboost':
         model = models.catboost_model(categorical_features)
@@ -49,11 +56,15 @@ def train_eval_baseline(model: str, scale_method: str):
         print(f"------------- LGBM params ------------- \n {params}")
 
     test_preds = model.predict(X_test)
-    if scale_method == 'minmax':
+    if scale_method in ['minmax', 'standard']:
         test_preds = scaler.inverse_transform(test_preds.reshape(-1, 1)).reshape(-1)
+
+    if scale_method == 'log':
+        test_preds = np.expm1(test_preds)
+
     test_rmsle = rmsle(test_preds, y_test)
     print(f'-------- Test RMSLE -------- {test_rmsle}')
 
 
 if __name__ == '__main__':
-    train_eval_baseline(model='lgbm', scale_method='minmax')
+    train_eval_baseline(model='catboost', scale_method='log')
