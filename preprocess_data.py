@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 import ast
+
+from sqlalchemy.sql.functions import min
+
 from constants import *
 from df2numpy import TransformDF2Numpy, one_hot_encode
 
@@ -84,21 +87,34 @@ def load_data_for_baseline_ml():
     return prepare_df_for_baseline(train_df), prepare_df_for_baseline(test_df)
 
 
-def load_data_transform2DFNumpy():
+def load_data_transform2DFNumpy(scale_popularity: bool = False):
     train_df = pd.read_csv(TRAIN_PATH, sep='\t')
     test_df = pd.read_csv(TEST_PATH, sep='\t')
 
-    X_train, y_train = prepare_df_for_baseline(df=train_df, zerotonan=True)  # TODO
-    X_test, y_test = prepare_df_for_baseline(df=test_df, zerotonan=True)  # TODO
+    X_train, y_train = prepare_df_for_baseline(df=train_df, zerotonan=True)
+    X_test, y_test = prepare_df_for_baseline(df=test_df, zerotonan=True)
 
     X_train['revenue'] = y_train
     X_test['revenue'] = y_test
 
+    if scale_popularity:  # TODO
+        from sklearn.preprocessing import MinMaxScaler
+        scaler = MinMaxScaler(feature_range=(1, 70))
+        scaler.fit(np.array(X_train[(X_train['release_date'] == 2019)]['popularity']).reshape(-1, 1))
+        for df in [X_train, X_test]:
+            for i, row in df.iterrows():
+                if row['release_date'] == 2019:
+                    new_popularity = np.float64(scaler.transform(np.array([df.at[i, 'popularity']]).reshape(-1, 1)))
+                    df.at[i, 'popularity'] = new_popularity
+
+    min_category_count_dict = dict.fromkeys(X_train.columns, 4)
+    # min_category_count_dict['belongs_to_collection'] = 0
+
     trans = TransformDF2Numpy(objective_col='revenue',
                               fillnan=True,
-                              numerical_scaling=False,
+                              numerical_scaling=True,  # TODO
                               copy=True,
-                              min_category_count=4)  # TODO
+                              min_category_count=min_category_count_dict)  # TODO
     X_train, y_train = trans.fit_transform(X_train)
     X_test, y_test = trans.transform(X_test)
 
@@ -108,3 +124,4 @@ def load_data_transform2DFNumpy():
 if __name__ == '__main__':
     train = pd.read_csv(TRAIN_PATH, sep='\t')
     test = pd.read_csv(TEST_PATH, sep='\t')
+    load_data_transform2DFNumpy(scale_popularity=True)

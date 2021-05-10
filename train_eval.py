@@ -2,9 +2,8 @@ import preprocess_data
 import numpy as np
 import models
 import lightgbm as lgb
-import catboost as cb
 import pandas as pd
-from pycaret.regression import *
+from pycaret.regression import setup, create_model, compare_models, finalize_model, predict_model
 
 
 def rmsle(preds, true):
@@ -41,14 +40,6 @@ def train_eval_baseline(model_name: str, target_scale_method: str):
         model = models.catboost_model(categorical_features)
         model.set_params(**dict(iterations=800))
         model.fit(X_train, y_train)
-
-        # -------------------------------------------------
-        # filter train data TODO Exp4
-        # X_train[y_train.name] = y_train
-        # X_train = X_train[X_train['revenue'] > 10000]
-        # y_train = X_train['revenue']
-        # X_train = X_train.drop(['revenue'], axis=1)
-        # -------------------------------------------------
 
         # -------------------------------------------------
         # hyperparameters
@@ -94,7 +85,8 @@ def train_eval_baseline(model_name: str, target_scale_method: str):
 
 
 def train_eval_pycaret(target_scale_method: str):
-    (X_train, y_train), (X_test, y_test), num_categoricals = preprocess_data.load_data_transform2DFNumpy()
+    (X_train, y_train), (X_test, y_test), num_categoricals = \
+        preprocess_data.load_data_transform2DFNumpy(scale_popularity=True)
     # prepare train data
     df_train = pd.DataFrame(X_train)
     if target_scale_method == 'log':
@@ -117,13 +109,16 @@ def train_eval_pycaret(target_scale_method: str):
     regressor = setup(data=df_train,
                       target='revenue',
                       categorical_features=categorical_features,
-                      silent=True,
-                      feature_selection=True,
-                      feature_selection_threshold=0.2)
+                      silent=True)
+
+    # find best model
     # best = compare_models(include=['xgboost', 'rf', 'en', 'lar', 'llar', 'mlp',
     #                                'gbr', 'lightgbm', 'catboost', 'svm', 'et'],
-    #                       sort='RMSLE')  # TODO
-    best = compare_models(include=['lightgbm'], sort='RMSLE')  # TODO
+    #                       sort='RMSLE')
+    # final = finalize_model(best)
+
+    # or choose specific model
+    best = compare_models(include=['catboost'], sort='RMSLE')
     final = finalize_model(best)
     test_preds = predict_model(final, data=df_test)['Label']
     if target_scale_method == 'log':
@@ -133,11 +128,46 @@ def train_eval_pycaret(target_scale_method: str):
     print(f'-------- Test RMSLE -------- {test_rmsle}')
 
 
+from multi_hot_transformations import load_data_for_exp11
+
+
+def train_eval_multi_hot():
+    X_train, y_train, X_test, y_test = load_data_for_exp11()
+    X_train['revenue'] = np.log1p(y_train)
+    X_test['revenue'] = np.log1p(y_test)
+
+    # remove nan
+    X_train['budget'].replace({np.nan: np.mean(X_train['budget'])}, inplace=True)
+    X_test['budget'].replace({np.nan: np.mean(X_train['budget'])}, inplace=True)
+
+    X_train['runtime'].replace({np.nan: np.mean(X_train['runtime'])}, inplace=True)
+    X_test['runtime'].replace({np.nan: np.mean(X_train['runtime'])}, inplace=True)
+
+    categorical_features = ['original_language']  # release_date as categorical? TODO
+
+    # pycaret
+    regressor = setup(data=X_train,
+                      target='revenue',
+                      categorical_features=categorical_features,
+                      silent=True)
+
+    # find best model
+    # best = compare_models(include=['xgboost', 'rf', 'en', 'lar', 'llar', 'mlp',
+    #                                'gbr', 'lightgbm', 'catboost', 'svm', 'et'],
+    #                       sort='RMSLE')
+    # final = finalize_model(best)
+
+    # or choose specific model
+    best = compare_models(include=['lightgbm'], sort='RMSLE')
+    final = finalize_model(best)
+    test_preds = predict_model(final, data=X_test)['Label']
+    test_preds = np.expm1(test_preds)
+
+    test_rmsle = rmsle(test_preds, y_test)
+    print(f'-------- Test RMSLE -------- {test_rmsle}')
+
+
 if __name__ == '__main__':
-    # train_eval_baseline(model_name='catboost', target_scale_method='log')  # reproduce 1.7678 test rmsle
+    # train_eval_baseline(model_name='lgbm', target_scale_method='log')  # reproduce 1.7678 test rmsle
     train_eval_pycaret(target_scale_method='log')
-
-    # pycaret random forest 1.779 (zerotonan=True, fillnan=True, numerical_scaling=False, min_category_count=4,
-    # feature_selection = True, feature_selection_threshold=0.3)
-
-    # pycaret lgbm 1.761
+    # train_eval_multi_hot()
