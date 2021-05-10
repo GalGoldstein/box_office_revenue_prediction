@@ -2,6 +2,9 @@ import preprocess_data
 import numpy as np
 import models
 import lightgbm as lgb
+import catboost as cb
+import pandas as pd
+from pycaret.regression import *
 
 
 def rmsle(preds, true):
@@ -15,27 +18,29 @@ def rmsle(preds, true):
     return np.sqrt(np.square(np.log(true + 1) - np.log(preds + 1)).mean())
 
 
-def train_eval_baseline(model: str, scale_method: str):
+def train_eval_baseline(model_name: str, target_scale_method: str):
     (X_train, y_train), (X_test, y_test) = preprocess_data.load_data_for_baseline_ml()
     categorical_features = ['belongs_to_collection', 'genres', 'original_language', 'production_companies',
                             'cast_1', 'cast_2', 'cast_3', 'cast_4', 'cast_5',  # cast features
                             'Executive Producer', 'Producer', 'Director', 'Screenplay', 'Author']  # crew features`
 
-    if scale_method == 'minmax':
+    if target_scale_method == 'minmax':
         from sklearn.preprocessing import MinMaxScaler
         scaler = MinMaxScaler(feature_range=(0, 1))
         y_train = scaler.fit_transform(y_train.reshape(-1, 1)).reshape(-1)
 
-    if scale_method == 'standard':
+    if target_scale_method == 'standard':
         from sklearn.preprocessing import StandardScaler
         scaler = StandardScaler()
         y_train = scaler.fit_transform(y_train.reshape(-1, 1)).reshape(-1)
 
-    if scale_method == 'log':
+    if target_scale_method == 'log':
         y_train = np.log1p(y_train)
 
-    if model == 'catboost':
+    if model_name == 'catboost':
         model = models.catboost_model(categorical_features)
+        model.set_params(**dict(iterations=800))
+        model.fit(X_train, y_train)
 
         # -------------------------------------------------
         # filter train data TODO Exp4
@@ -45,8 +50,29 @@ def train_eval_baseline(model: str, scale_method: str):
         # X_train = X_train.drop(['revenue'], axis=1)
         # -------------------------------------------------
 
-        model.fit(X_train, y_train)
-    if model == 'lgbm':
+        # -------------------------------------------------
+        # hyperparameters
+        # grid = {
+        #     'learning_rate': np.arange(0.03, 0.1, 0.01),
+        #     'depth': np.arange(5, 20, 1),
+        #     'l2_leaf_reg': np.arange(0.5, 10, 0.5),
+        #     'iterations': np.arange(700, 1200, 50),
+        #     'one_hot_max_size': np.arange(10, 50, 10),
+        #     'bagging_temperature': np.arange(1, 100, 1),
+        #     'rsm': np.arange(0.3, 1, 0.05)
+        # }
+        # randomized_search_result = model.randomized_search(grid,
+        #                                                    X=X_train,
+        #                                                    y=y_train,
+        #                                                    n_iter=50)
+        # # -------------------------------------------------
+        # model = cb.CatBoostRegressor(cat_features=categorical_features)
+        # model.set_params(**randomized_search_result['params'])
+        # model.fit(X_train, y_train)
+
+        print(f'-------------- all catboost parmas -------------- \n{model.get_all_params()}')
+
+    if model_name == 'lgbm':
         for col in categorical_features:
             X_train[col] = X_train[col].astype('category')
             X_test[col] = X_test[col].astype('category')
@@ -56,10 +82,51 @@ def train_eval_baseline(model: str, scale_method: str):
         print(f"------------- LGBM params ------------- \n {params}")
 
     test_preds = model.predict(X_test)
-    if scale_method in ['minmax', 'standard']:
+
+    if target_scale_method in ['minmax', 'standard']:
         test_preds = scaler.inverse_transform(test_preds.reshape(-1, 1)).reshape(-1)
 
-    if scale_method == 'log':
+    if target_scale_method == 'log':
+        test_preds = np.expm1(test_preds)
+
+    test_rmsle = rmsle(test_preds, y_test)
+    print(f'-------- Test RMSLE -------- {test_rmsle}')
+
+
+def train_eval_pycaret(target_scale_method: str):
+    (X_train, y_train), (X_test, y_test), num_categoricals = preprocess_data.load_data_transform2DFNumpy()
+    # prepare train data
+    df_train = pd.DataFrame(X_train)
+    if target_scale_method == 'log':
+        df_train['revenue'] = np.log1p(y_train)
+    else:
+        df_train['revenue'] = y_train
+    df_train.columns = df_train.columns.astype(str)
+
+    # prepare test data
+    df_test = pd.DataFrame(X_test)
+    if target_scale_method == 'log':
+        df_test['revenue'] = np.log1p(y_test)
+    else:
+        df_test['revenue'] = y_test
+    df_test.columns = df_test.columns.astype(str)
+
+    categorical_features = [str(i) for i in range(num_categoricals)]
+
+    # pycaret
+    regressor = setup(data=df_train,
+                      target='revenue',
+                      categorical_features=categorical_features,
+                      silent=True,
+                      feature_selection=True,
+                      feature_selection_threshold=0.2)
+    # best = compare_models(include=['xgboost', 'rf', 'en', 'lar', 'llar', 'mlp',
+    #                                'gbr', 'lightgbm', 'catboost', 'svm', 'et'],
+    #                       sort='RMSLE')  # TODO
+    best = compare_models(include=['lightgbm'], sort='RMSLE')  # TODO
+    final = finalize_model(best)
+    test_preds = predict_model(final, data=df_test)['Label']
+    if target_scale_method == 'log':
         test_preds = np.expm1(test_preds)
 
     test_rmsle = rmsle(test_preds, y_test)
@@ -67,4 +134,10 @@ def train_eval_baseline(model: str, scale_method: str):
 
 
 if __name__ == '__main__':
-    train_eval_baseline(model='catboost', scale_method='log')
+    # train_eval_baseline(model_name='catboost', target_scale_method='log')  # reproduce 1.7678 test rmsle
+    train_eval_pycaret(target_scale_method='log')
+
+    # pycaret random forest 1.779 (zerotonan=True, fillnan=True, numerical_scaling=False, min_category_count=4,
+    # feature_selection = True, feature_selection_threshold=0.3)
+
+    # pycaret lgbm 1.761
