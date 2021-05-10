@@ -3,7 +3,8 @@ import numpy as np
 import models
 import lightgbm as lgb
 import pandas as pd
-from pycaret.regression import setup, create_model, compare_models, finalize_model, predict_model
+from pycaret.regression import setup, create_model, compare_models, finalize_model, predict_model, tune_model
+from multi_hot_transformations import load_data_for_exp11
 
 
 def rmsle(preds, true):
@@ -120,15 +121,13 @@ def train_eval_pycaret(target_scale_method: str):
     # or choose specific model
     best = compare_models(include=['catboost'], sort='RMSLE')
     final = finalize_model(best)
+
     test_preds = predict_model(final, data=df_test)['Label']
     if target_scale_method == 'log':
         test_preds = np.expm1(test_preds)
 
     test_rmsle = rmsle(test_preds, y_test)
     print(f'-------- Test RMSLE -------- {test_rmsle}')
-
-
-from multi_hot_transformations import load_data_for_exp11
 
 
 def train_eval_multi_hot():

@@ -1,11 +1,8 @@
 import pandas as pd
 import numpy as np
 import ast
-
-from sqlalchemy.sql.functions import min
-
 from constants import *
-from df2numpy import TransformDF2Numpy, one_hot_encode
+from df2numpy import TransformDF2Numpy, one_hot_encode # TODO remember to clone yotam's repo (forked)
 
 
 def _get_first_crew_member_per_job(crew_list: list, jobs: list):
@@ -112,9 +109,9 @@ def load_data_transform2DFNumpy(scale_popularity: bool = False):
 
     trans = TransformDF2Numpy(objective_col='revenue',
                               fillnan=True,
-                              numerical_scaling=True,  # TODO
+                              numerical_scaling=True,
                               copy=True,
-                              min_category_count=min_category_count_dict)  # TODO
+                              min_category_count=min_category_count_dict)
     X_train, y_train = trans.fit_transform(X_train)
     X_test, y_test = trans.transform(X_test)
 
