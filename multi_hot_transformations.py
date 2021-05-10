@@ -5,7 +5,45 @@ from constants import *
 import ast
 
 
-def prepare_df_for_exp11(df: pd.DataFrame):
+def prepare_test(df: pd.DataFrame, dicts):
+    columns_not_included = ['backdrop_path', 'homepage', 'id', 'imdb_id', 'poster_path', 'production_countries',
+                            'spoken_languages', 'status', 'video']
+    textual_columns = ['original_title', 'overview', 'tagline', 'title', 'Keywords']
+
+    X = df.drop(columns_not_included + textual_columns, axis=1)
+
+    columns_to_dict = ['genres', 'belongs_to_collection', 'cast',  'production_companies', 'crew']
+    for col in columns_to_dict:
+        X[col] = X[col].apply(lambda x: ast.literal_eval(str(x)) if type(x) == str else x)
+
+    X['budget'] = X['budget'].apply(lambda x: x if x >= 2500 else np.nan)
+
+    X["release_date"] = X["release_date"].astype("datetime64")
+    X['release_date'] = X['release_date'].apply(lambda x: x.date().year)  # take only year as int
+
+    X['runtime'].replace({0: np.nan}, inplace=True)
+    X['belongs_to_collection'] = X['belongs_to_collection'].apply(lambda x: [x] if type(x) in [dict] else x)
+
+    for col, dictionary in zip(columns_to_dict[:-1], dicts[:-1]):
+        X[col] = X[col].apply(lambda x: extract_all_names(x) if type(x) in [dict, list] else [])
+        X[col] = X[col].apply(lambda row: create_multi_hot(row, dictionary))
+
+    X['crew'] = X['crew'].apply(lambda x: extract_all_names_for_crew(x) if type(x) in [dict, list] else [])
+    X['crew'] = X['crew'].apply(lambda row: create_multi_hot(row, dicts[-1]))
+
+    prefixes_names = ['genre', 'collection', 'actor',  'company', 'crew']
+    X = X.reset_index(drop=True)
+    for col, dictionary, prefix in zip(columns_to_dict, dicts, prefixes_names):
+        mat = np.vstack(list(X[col].values))
+        columns_names = [prefix + '_' + i for i in dictionary.keys()]
+        df2 = pd.DataFrame(mat, columns=columns_names)
+        X = pd.concat([X, df2], axis=1)
+
+    X = X.drop(columns_to_dict, axis=1)
+    return X
+
+
+def prepare_train(df: pd.DataFrame):
     columns_not_included = ['backdrop_path', 'homepage', 'id', 'imdb_id', 'poster_path', 'production_countries',
                             'spoken_languages', 'status', 'video']
     textual_columns = ['original_title', 'overview', 'tagline', 'title', 'Keywords']
@@ -52,7 +90,7 @@ def prepare_df_for_exp11(df: pd.DataFrame):
         X = pd.concat([X, df2], axis=1)
 
     X = X.drop(columns_to_dict, axis=1)
-    return X, y
+    return X, y, dicts
 
 
 def extract_all_names_for_crew(row):
@@ -69,7 +107,7 @@ def extract_all_names(row):
     for x in row:
         if type(x) == dict and '<' not in str(x['name']):
             names.append(x.get('name', '<no cast>'))
-    return names[:20] # TODO possible parameter, relevant mainly to # of actors per movie
+    return names[:20]  # TODO possible parameter, relevant mainly to # of actors per movie
 
 
 def extract_and_threshold(X, col_name, threshold):
@@ -99,4 +137,12 @@ def load_data_for_exp11():
     """
     train_df = pd.read_csv(TRAIN_PATH, sep='\t')
     test_df = pd.read_csv(TEST_PATH, sep='\t')
-    return prepare_df_for_exp11(train_df), prepare_df_for_exp11(test_df)
+    X_train, y_train, dicts = prepare_train(train_df)
+
+    y_test = None  # TODO decide how to define it for comp
+    if 'revenue' in test_df.columns:  # TODO whether its test or comp
+        y_test = test_df['revenue']
+        test_df = test_df.drop(['revenue'], axis=1)
+    X_test = prepare_test(test_df, dicts=dicts)
+
+    return X_train, y_train, X_test, y_test
