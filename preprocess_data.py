@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import ast
 from constants import *
-from df2numpy import TransformDF2Numpy, one_hot_encode # TODO remember to clone yotam's repo (forked)
+from df2numpy import TransformDF2Numpy, one_hot_encode  # TODO remember to clone yotam's repo (forked)
 
 
 def _get_first_crew_member_per_job(crew_list: list, jobs: list):
@@ -84,7 +84,7 @@ def load_data_for_baseline_ml():
     return prepare_df_for_baseline(train_df), prepare_df_for_baseline(test_df)
 
 
-def load_data_transform2DFNumpy(scale_popularity: bool = False):
+def load_data_transform2DFNumpy(scale_popularity: bool = False, return_trans: bool = False):
     train_df = pd.read_csv(TRAIN_PATH, sep='\t')
     test_df = pd.read_csv(TEST_PATH, sep='\t')
 
@@ -115,7 +115,10 @@ def load_data_transform2DFNumpy(scale_popularity: bool = False):
     X_train, y_train = trans.fit_transform(X_train)
     X_test, y_test = trans.transform(X_test)
 
-    return (X_train, y_train), (X_test, y_test), trans.num_categoricals
+    if return_trans:
+        return (X_train, y_train), (X_test, y_test), trans.num_categoricals, trans
+    else:
+        return (X_train, y_train), (X_test, y_test), trans.num_categoricals
 
 
 if __name__ == '__main__':
