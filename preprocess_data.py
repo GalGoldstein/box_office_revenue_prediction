@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import ast
 from constants import *
+from df2numpy import TransformDF2Numpy, one_hot_encode
 
 
 def _get_first_crew_member_per_job(crew_list: list, jobs: list):
@@ -20,22 +21,24 @@ def _get_first_crew_member_per_job(crew_list: list, jobs: list):
     return result
 
 
-def prepare_df_for_baseline(df: pd.DataFrame):
+def prepare_df_for_baseline(df: pd.DataFrame, zerotonan: bool = True):
     columns_not_included = ['backdrop_path', 'homepage', 'id', 'imdb_id', 'poster_path', 'production_countries',
                             'spoken_languages', 'status', 'video']
     textual_columns = ['original_title', 'overview', 'tagline', 'title', 'Keywords']
     target_column = 'revenue'
 
-    y = df[target_column]
+    y = np.array(df[target_column])
     X = df.drop(columns_not_included + textual_columns + [target_column], axis=1)
 
     columns_to_dict = ['belongs_to_collection', 'genres', 'production_companies', 'cast', 'crew']
     for col in columns_to_dict:
         X[col] = X[col].apply(lambda x: ast.literal_eval(str(x)) if type(x) == str else x)
 
-    X['budget'].replace({0: np.nan}, inplace=True)
+    if zerotonan:
+        X['budget'].replace({0: np.nan}, inplace=True)
+        X['runtime'].replace({0: np.nan}, inplace=True)
+
     X["release_date"] = X["release_date"].astype("datetime64")
-    X['runtime'].replace({0: np.nan}, inplace=True)
 
     X['belongs_to_collection'] = X['belongs_to_collection'].apply(
         lambda x: x.get('name', '<no collection>') if type(x) == dict else '<no collection>')
@@ -79,6 +82,27 @@ def load_data_for_baseline_ml():
     train_df = pd.read_csv(TRAIN_PATH, sep='\t')
     test_df = pd.read_csv(TEST_PATH, sep='\t')
     return prepare_df_for_baseline(train_df), prepare_df_for_baseline(test_df)
+
+
+def load_data_transform2DFNumpy():
+    train_df = pd.read_csv(TRAIN_PATH, sep='\t')
+    test_df = pd.read_csv(TEST_PATH, sep='\t')
+
+    X_train, y_train = prepare_df_for_baseline(df=train_df, zerotonan=True)  # TODO
+    X_test, y_test = prepare_df_for_baseline(df=test_df, zerotonan=True)  # TODO
+
+    X_train['revenue'] = y_train
+    X_test['revenue'] = y_test
+
+    trans = TransformDF2Numpy(objective_col='revenue',
+                              fillnan=True,
+                              numerical_scaling=False,
+                              copy=True,
+                              min_category_count=4)  # TODO
+    X_train, y_train = trans.fit_transform(X_train)
+    X_test, y_test = trans.transform(X_test)
+
+    return (X_train, y_train), (X_test, y_test), trans.num_categoricals
 
 
 if __name__ == '__main__':
