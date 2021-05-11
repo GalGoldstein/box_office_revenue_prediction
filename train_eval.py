@@ -1,9 +1,18 @@
+"""
+This script contains three function to train and evaluate in three different techniques:
+1. Our baseline fata representation with catboost / lgbm models
+2. pycaret models training to find the best models that suit to our baseline data representation
+3. pycaret models training with a multi-hot data representation
+
+also in this script is `rmsle` function for evaluating our models
+"""
+
 import preprocess_data
 import numpy as np
 import models
 import lightgbm as lgb
 import pandas as pd
-from pycaret.regression import setup, create_model, compare_models, finalize_model, predict_model, tune_model
+from pycaret.regression import setup, compare_models, finalize_model, predict_model, save_model
 from multi_hot_transformations import load_data_for_exp11
 
 
@@ -125,6 +134,8 @@ def train_eval_pycaret(target_scale_method: str):
     # or choose specific model
     best = compare_models(include=['catboost'], sort='RMSLE')
     final = finalize_model(best)
+
+    # save_model(final, 'test_catboost_model')  # TODO
 
     test_preds = predict_model(final, data=df_test)['Label']
     if target_scale_method == 'log':

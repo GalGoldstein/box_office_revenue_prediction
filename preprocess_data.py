@@ -1,8 +1,13 @@
+"""
+This script contains function to pre-process the data for machine learning
+"""
+
 import pandas as pd
 import numpy as np
 import ast
 from constants import *
-from df2numpy import TransformDF2Numpy, one_hot_encode  # TODO remember to clone yotam's repo (forked)
+from df2numpy import TransformDF2Numpy  # https://github.com/yotammarton/TransformDF2Numpy
+from pickle import dump
 
 
 def _get_first_crew_member_per_job(crew_list: list, jobs: list):
@@ -43,7 +48,7 @@ def prepare_df_for_baseline(df: pd.DataFrame, zerotonan: bool = True):
     X['belongs_to_collection'] = X['belongs_to_collection'].apply(
         lambda x: x.get('name', '<no collection>') if type(x) == dict else '<no collection>')
 
-    # genres
+    # genres (first 3 if available)
     X['genre_1'] = X['genres'].apply(
         lambda x: x[0].get('name', '<no genre>') if type(x) == list and len(x) > 0 and type(x[0]) == dict
         else '<no genre>')
@@ -54,7 +59,7 @@ def prepare_df_for_baseline(df: pd.DataFrame, zerotonan: bool = True):
         lambda x: x[2].get('name', '<no genre>') if type(x) == list and len(x) > 2 and type(x[2]) == dict
         else '<no genre>')
 
-    # only first production company
+    # production companies (first 3 if available)
     X['production_company_1'] = X['production_companies'].apply(
         lambda x: x[0].get('name', '<no company>') if type(x) == list and len(x) > 0 and type(x[0]) == dict
         else '<no company>')
@@ -65,7 +70,7 @@ def prepare_df_for_baseline(df: pd.DataFrame, zerotonan: bool = True):
         lambda x: x[2].get('name', '<no company>') if type(x) == list and len(x) > 2 and type(x[2]) == dict
         else '<no company>')
 
-    # take only year as int
+    # take  year and month as int
     X['release_month'] = X['release_date'].apply(lambda x: x.date().month)
     X['release_date'] = X['release_date'].apply(lambda x: x.date().year)
 
@@ -107,10 +112,12 @@ def load_data_transform2DFNumpy(scale_popularity: bool = False, return_trans: bo
     X_train['revenue'] = y_train
     X_test['revenue'] = y_test
 
-    if scale_popularity:  # TODO
+    if scale_popularity:
         from sklearn.preprocessing import MinMaxScaler
         scaler = MinMaxScaler(feature_range=(1, 70))
         scaler.fit(np.array(X_train[(X_train['release_date'] == 2019)]['popularity']).reshape(-1, 1))
+        # dump(scaler, open('test_scaler.pkl', 'wb'))  # TODO
+
         for df in [X_train, X_test]:
             for i, row in df.iterrows():
                 if row['release_date'] == 2019:
@@ -126,6 +133,7 @@ def load_data_transform2DFNumpy(scale_popularity: bool = False, return_trans: bo
                               copy=True,
                               min_category_count=min_category_count_dict)
     X_train, y_train = trans.fit_transform(X_train)
+    # dump(trans, open('test_trans.pkl', 'wb'))  # TODO
     X_test, y_test = trans.transform(X_test)
 
     if return_trans:
@@ -137,4 +145,4 @@ def load_data_transform2DFNumpy(scale_popularity: bool = False, return_trans: bo
 if __name__ == '__main__':
     train = pd.read_csv(TRAIN_PATH, sep='\t')
     test = pd.read_csv(TEST_PATH, sep='\t')
-    load_data_transform2DFNumpy(scale_popularity=True)
+    # load_data_transform2DFNumpy(scale_popularity=True)
