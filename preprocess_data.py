@@ -34,7 +34,7 @@ def prepare_df_for_baseline(df: pd.DataFrame, zerotonan: bool = True):
     for col in columns_to_dict:
         X[col] = X[col].apply(lambda x: ast.literal_eval(str(x)) if type(x) == str else x)
 
-    if zerotonan:
+    if zerotonan:  # uncertain data to nan
         X['budget'].replace({0: np.nan}, inplace=True)
         X['runtime'].replace({0: np.nan}, inplace=True)
 
@@ -43,17 +43,30 @@ def prepare_df_for_baseline(df: pd.DataFrame, zerotonan: bool = True):
     X['belongs_to_collection'] = X['belongs_to_collection'].apply(
         lambda x: x.get('name', '<no collection>') if type(x) == dict else '<no collection>')
 
-    # only first genre
-    X['genres'] = X['genres'].apply(
+    # genres
+    X['genre_1'] = X['genres'].apply(
         lambda x: x[0].get('name', '<no genre>') if type(x) == list and len(x) > 0 and type(x[0]) == dict
+        else '<no genre>')
+    X['genre_2'] = X['genres'].apply(
+        lambda x: x[1].get('name', '<no genre>') if type(x) == list and len(x) > 1 and type(x[1]) == dict
+        else '<no genre>')
+    X['genre_3'] = X['genres'].apply(
+        lambda x: x[2].get('name', '<no genre>') if type(x) == list and len(x) > 2 and type(x[2]) == dict
         else '<no genre>')
 
     # only first production company
-    X['production_companies'] = X['production_companies'].apply(
+    X['production_company_1'] = X['production_companies'].apply(
         lambda x: x[0].get('name', '<no company>') if type(x) == list and len(x) > 0 and type(x[0]) == dict
+        else '<no company>')
+    X['production_company_2'] = X['production_companies'].apply(
+        lambda x: x[1].get('name', '<no company>') if type(x) == list and len(x) > 1 and type(x[1]) == dict
+        else '<no company>')
+    X['production_company_3'] = X['production_companies'].apply(
+        lambda x: x[2].get('name', '<no company>') if type(x) == list and len(x) > 2 and type(x[2]) == dict
         else '<no company>')
 
     # take only year as int
+    X['release_month'] = X['release_date'].apply(lambda x: x.date().month)
     X['release_date'] = X['release_date'].apply(lambda x: x.date().year)
 
     # get 5 first cast members
@@ -69,7 +82,7 @@ def prepare_df_for_baseline(df: pd.DataFrame, zerotonan: bool = True):
     for job in jobs:
         X[job] = X['crew'].apply(lambda x: x.get(job, '<no crew>'))
 
-    X = X.drop(['cast', 'crew'], axis=1)
+    X = X.drop(['cast', 'crew', 'genres', 'production_companies'], axis=1)
 
     return X, y
 
@@ -108,7 +121,7 @@ def load_data_transform2DFNumpy(scale_popularity: bool = False, return_trans: bo
     # min_category_count_dict['belongs_to_collection'] = 0
 
     trans = TransformDF2Numpy(objective_col='revenue',
-                              fillnan=True,
+                              fillnan=False,
                               numerical_scaling=True,
                               copy=True,
                               min_category_count=min_category_count_dict)

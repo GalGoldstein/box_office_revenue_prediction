@@ -20,7 +20,9 @@ def rmsle(preds, true):
 
 def train_eval_baseline(model_name: str, target_scale_method: str):
     (X_train, y_train), (X_test, y_test) = preprocess_data.load_data_for_baseline_ml()
-    categorical_features = ['belongs_to_collection', 'genres', 'original_language', 'production_companies',
+    categorical_features = ['belongs_to_collection', 'original_language',
+                            'production_company_1', 'production_company_2', 'production_company_3',
+                            'genre_1', 'genre_2', 'genre_3',
                             'cast_1', 'cast_2', 'cast_3', 'cast_4', 'cast_5',  # cast features
                             'Executive Producer', 'Producer', 'Director', 'Screenplay', 'Author']  # crew features`
 
@@ -108,9 +110,11 @@ def train_eval_pycaret(target_scale_method: str):
 
     # pycaret
     regressor = setup(data=df_train,
-                      target='revenue',
-                      categorical_features=categorical_features,
-                      silent=True)
+                      target='revenue',  # label column
+                      categorical_features=categorical_features,  # will be encoded to one-hot
+                      numeric_imputation='median',  # each numrical nan replaced with the column median
+                      silent=True,  # True tells pycaret to not ask for approval of columns types
+                      session_id=555)  # like random_seed
 
     # find best model
     # best = compare_models(include=['xgboost', 'rf', 'en', 'lar', 'llar', 'mlp',
@@ -130,10 +134,10 @@ def train_eval_pycaret(target_scale_method: str):
     print(f'-------- Test RMSLE -------- {test_rmsle}')
 
 
-def train_eval_multi_hot():
+def train_eval_multi_hot(target_scale_method: str):
     X_train, y_train, X_test, y_test = load_data_for_exp11()
-    X_train['revenue'] = np.log1p(y_train)
-    X_test['revenue'] = np.log1p(y_test)
+    X_train['revenue'] = np.log1p(y_train) if target_scale_method == 'log' else y_train
+    X_test['revenue'] = np.log1p(y_test) if target_scale_method == 'log' else y_test
 
     # remove nan
     X_train['budget'].replace({np.nan: np.mean(X_train['budget'])}, inplace=True)
@@ -142,7 +146,7 @@ def train_eval_multi_hot():
     X_train['runtime'].replace({np.nan: np.mean(X_train['runtime'])}, inplace=True)
     X_test['runtime'].replace({np.nan: np.mean(X_train['runtime'])}, inplace=True)
 
-    categorical_features = ['original_language']  # release_date as categorical? TODO
+    categorical_features = ['original_language']
 
     # pycaret
     regressor = setup(data=X_train,
@@ -160,7 +164,7 @@ def train_eval_multi_hot():
     best = compare_models(include=['lightgbm'], sort='RMSLE')
     final = finalize_model(best)
     test_preds = predict_model(final, data=X_test)['Label']
-    test_preds = np.expm1(test_preds)
+    test_preds = np.expm1(test_preds) if target_scale_method == 'log' else test_preds
 
     test_rmsle = rmsle(test_preds, y_test)
     print(f'-------- Test RMSLE -------- {test_rmsle}')
@@ -169,4 +173,4 @@ def train_eval_multi_hot():
 if __name__ == '__main__':
     # train_eval_baseline(model_name='lgbm', target_scale_method='log')  # reproduce 1.7678 test rmsle
     train_eval_pycaret(target_scale_method='log')
-    # train_eval_multi_hot()
+    # train_eval_multi_hot(target_scale_method='log')
