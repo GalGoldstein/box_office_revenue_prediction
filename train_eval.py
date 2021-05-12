@@ -135,7 +135,7 @@ def train_eval_pycaret(target_scale_method: str):
     best = compare_models(include=['catboost'], sort='RMSLE')
     final = finalize_model(best)
 
-    # save_model(final, 'test_catboost_model')  # TODO
+    # save_model(final, 'catboost_model')  # TODO
 
     test_preds = predict_model(final, data=df_test)['Label']
     if target_scale_method == 'log':

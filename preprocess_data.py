@@ -116,7 +116,7 @@ def load_data_transform2DFNumpy(scale_popularity: bool = False, return_trans: bo
         from sklearn.preprocessing import MinMaxScaler
         scaler = MinMaxScaler(feature_range=(1, 70))
         scaler.fit(np.array(X_train[(X_train['release_date'] == 2019)]['popularity']).reshape(-1, 1))
-        # dump(scaler, open('test_scaler.pkl', 'wb'))  # TODO
+        # dump(scaler, open('scaler.pkl', 'wb'))  # TODO
 
         for df in [X_train, X_test]:
             for i, row in df.iterrows():
@@ -133,7 +133,7 @@ def load_data_transform2DFNumpy(scale_popularity: bool = False, return_trans: bo
                               copy=True,
                               min_category_count=min_category_count_dict)
     X_train, y_train = trans.fit_transform(X_train)
-    # dump(trans, open('test_trans.pkl', 'wb'))  # TODO
+    # dump(trans, open('trans.pkl', 'wb'))  # TODO
     X_test, y_test = trans.transform(X_test)
 
     if return_trans:

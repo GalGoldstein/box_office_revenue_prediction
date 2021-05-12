@@ -3,9 +3,9 @@ name: hw1_env
 dependencies:
   - pip
   - python=3.6
-  - numpy
-  - pandas
   - pip:
+      - numpy==1.19.5
+      - pandas==1.2.3
       - pycaret==2.3.1
       - catboost==0.25.1
       - lightgbm==3.2.1

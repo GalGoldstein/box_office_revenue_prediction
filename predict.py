@@ -15,14 +15,9 @@ args = parser.parse_args()
 data = pd.read_csv(args.tsv_path, sep="\t")
 
 # load model and transformation to pre-process data
-if 'test' in args.tsv_path:
-    model = load_model('test_catboost_model')
-    trans = load(open('test_trans.pkl', 'rb'))
-    scaler = load(open('test_scaler.pkl', 'rb'))
-else:  # assuming competition file
-    model = load_model('comp_catboost_model')
-    trans = load(open('comp_trans.pkl', 'rb'))
-    scaler = load(open('comp_scaler.pkl', 'rb'))
+model = load_model('catboost_model')
+trans = load(open('trans.pkl', 'rb'))
+scaler = load(open('scaler.pkl', 'rb'))
 
 X, y = prepare_df_for_baseline(df=data, zerotonan=True)
 X['revenue'] = y
