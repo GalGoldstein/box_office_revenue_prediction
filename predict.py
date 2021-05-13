@@ -5,6 +5,8 @@ from pickle import load
 from preprocess_data import prepare_df_for_ml
 from pycaret.regression import predict_model, load_model
 from train_eval import rmsle
+import os
+import sys
 
 # Parsing script arguments
 parser = argparse.ArgumentParser(description='Process input')
@@ -15,9 +17,9 @@ args = parser.parse_args()
 data = pd.read_csv(args.tsv_path, sep="\t")
 
 # load model and transformation to pre-process data
-model = load_model('catboost_model')
-trans = load(open('trans.pkl', 'rb'))
-scaler = load(open('scaler.pkl', 'rb'))
+model = load_model(os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), 'catboost_model'))
+trans = load(open(os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), 'trans.pkl'), 'rb'))
+scaler = load(open(os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), 'scaler.pkl'), 'rb'))
 
 X, y = prepare_df_for_ml(df=data, zerotonan=True)
 X['revenue'] = y
