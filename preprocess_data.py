@@ -26,7 +26,7 @@ def _get_first_crew_member_per_job(crew_list: list, jobs: list):
     return result
 
 
-def prepare_df_for_baseline(df: pd.DataFrame, zerotonan: bool = True):
+def prepare_df_for_ml(df: pd.DataFrame, zerotonan: bool = True):
     columns_not_included = ['backdrop_path', 'homepage', 'id', 'imdb_id', 'poster_path', 'production_countries',
                             'spoken_languages', 'status', 'video']
     textual_columns = ['original_title', 'overview', 'tagline', 'title', 'Keywords']
@@ -34,6 +34,18 @@ def prepare_df_for_baseline(df: pd.DataFrame, zerotonan: bool = True):
 
     y = np.array(df[target_column])
     X = df.drop(columns_not_included + textual_columns + [target_column], axis=1)
+
+    # features interaction for features with high correlation to target
+    X["f1"] = X["vote_count"] ** 2
+    X["f2"] = X["vote_count"] * X["budget"]
+    X["f3"] = X["vote_count"] / X["budget"]
+    X["f4"] = X["vote_count"] * X["popularity"]
+    X["f5"] = X["vote_count"] / X["popularity"]
+    X["f6"] = np.log(X["vote_count"] ** 2)
+    X["f7"] = np.log(X["vote_count"] * X["budget"])
+    X["f8"] = np.log(X["vote_count"] / X["budget"])
+    X["f9"] = np.log(X["vote_count"] * X["popularity"])
+    X["f10"] = np.log(X["vote_count"] / X["popularity"])
 
     columns_to_dict = ['belongs_to_collection', 'genres', 'production_companies', 'cast', 'crew']
     for col in columns_to_dict:
@@ -70,7 +82,7 @@ def prepare_df_for_baseline(df: pd.DataFrame, zerotonan: bool = True):
         lambda x: x[2].get('name', '<no company>') if type(x) == list and len(x) > 2 and type(x[2]) == dict
         else '<no company>')
 
-    # take  year and month as int
+    # take year and month as int
     X['release_month'] = X['release_date'].apply(lambda x: x.date().month)
     X['release_date'] = X['release_date'].apply(lambda x: x.date().year)
 
@@ -92,22 +104,22 @@ def prepare_df_for_baseline(df: pd.DataFrame, zerotonan: bool = True):
     return X, y
 
 
-def load_data_for_baseline_ml():
+def load_data_for_ml():
     """
     loads the train and test data ready for the baseline settings (features)
     :return: (X_train, y_train), (X_test, y_test). X is pd.DataFrame, y is pd.Series
     """
     train_df = pd.read_csv(TRAIN_PATH, sep='\t')
     test_df = pd.read_csv(TEST_PATH, sep='\t')
-    return prepare_df_for_baseline(train_df), prepare_df_for_baseline(test_df)
+    return prepare_df_for_ml(train_df), prepare_df_for_ml(test_df)
 
 
 def load_data_transform2DFNumpy(scale_popularity: bool = False, return_trans: bool = False):
     train_df = pd.read_csv(TRAIN_PATH, sep='\t')
     test_df = pd.read_csv(TEST_PATH, sep='\t')
 
-    X_train, y_train = prepare_df_for_baseline(df=train_df, zerotonan=True)
-    X_test, y_test = prepare_df_for_baseline(df=test_df, zerotonan=True)
+    X_train, y_train = prepare_df_for_ml(df=train_df, zerotonan=True)
+    X_test, y_test = prepare_df_for_ml(df=test_df, zerotonan=True)
 
     X_train['revenue'] = y_train
     X_test['revenue'] = y_test
@@ -124,14 +136,11 @@ def load_data_transform2DFNumpy(scale_popularity: bool = False, return_trans: bo
                     new_popularity = np.float64(scaler.transform(np.array([df.at[i, 'popularity']]).reshape(-1, 1)))
                     df.at[i, 'popularity'] = new_popularity
 
-    min_category_count_dict = dict.fromkeys(X_train.columns, 4)
-    # min_category_count_dict['belongs_to_collection'] = 0
-
     trans = TransformDF2Numpy(objective_col='revenue',
                               fillnan=False,
                               numerical_scaling=True,
                               copy=True,
-                              min_category_count=min_category_count_dict)
+                              min_category_count=4)
     X_train, y_train = trans.fit_transform(X_train)
     # dump(trans, open('trans.pkl', 'wb'))  # TODO
     X_test, y_test = trans.transform(X_test)

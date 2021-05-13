@@ -2,7 +2,7 @@ name: hw1_env
 
 dependencies:
   - pip
-  - python=3.6
+  - python=3.8
   - pip:
       - numpy
       - pandas

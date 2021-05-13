@@ -28,7 +28,7 @@ def rmsle(preds, true):
 
 
 def train_eval_baseline(model_name: str, target_scale_method: str):
-    (X_train, y_train), (X_test, y_test) = preprocess_data.load_data_for_baseline_ml()
+    (X_train, y_train), (X_test, y_test) = preprocess_data.load_data_for_ml()
     categorical_features = ['belongs_to_collection', 'original_language',
                             'production_company_1', 'production_company_2', 'production_company_3',
                             'genre_1', 'genre_2', 'genre_3',
@@ -182,6 +182,6 @@ def train_eval_multi_hot(target_scale_method: str):
 
 
 if __name__ == '__main__':
-    # train_eval_baseline(model_name='lgbm', target_scale_method='log')  # reproduce 1.7678 test rmsle
+    # train_eval_baseline(model_name='catboost', target_scale_method='log')  # reproduce 1.7678 test rmsle
     train_eval_pycaret(target_scale_method='log')
     # train_eval_multi_hot(target_scale_method='log')

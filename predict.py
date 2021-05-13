@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from pickle import load
-from preprocess_data import prepare_df_for_baseline
+from preprocess_data import prepare_df_for_ml
 from pycaret.regression import predict_model, load_model
 from train_eval import rmsle
 
@@ -19,7 +19,7 @@ model = load_model('catboost_model')
 trans = load(open('trans.pkl', 'rb'))
 scaler = load(open('scaler.pkl', 'rb'))
 
-X, y = prepare_df_for_baseline(df=data, zerotonan=True)
+X, y = prepare_df_for_ml(df=data, zerotonan=True)
 X['revenue'] = y
 
 # scale popularity for 2019 data
@@ -36,7 +36,7 @@ df = pd.DataFrame(X)
 df.columns = df.columns.astype(str)
 
 preds = predict_model(model, data=df)['Label']
-preds = np.expm1(preds)  # because we predicted the log(1+x) values
+preds = np.maximum(np.expm1(preds), np.zeros(len(preds)))  # because we predicted the log(1+x) values
 
 # build the predictions dataframe
 prediction_df = pd.DataFrame(columns=['id', 'revenue'])
