@@ -130,7 +130,6 @@ def train_eval_pycaret(target_scale_method: str):
     #                                'gbr', 'lightgbm', 'catboost', 'svm', 'et'],
     #                       sort='RMSLE')
     # final = finalize_model(best)
-
     # or choose specific model
     best = compare_models(include=['catboost'], sort='RMSLE')
     final = finalize_model(best)
