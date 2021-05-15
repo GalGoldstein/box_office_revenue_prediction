@@ -13,7 +13,7 @@ import models
 import lightgbm as lgb
 import pandas as pd
 from pycaret.regression import setup, compare_models, finalize_model, predict_model, save_model
-from multi_hot_transformations import load_data_for_exp11
+from multi_hot_transformations import load_data_for_multi_hot_representation
 
 
 def rmsle(preds, true):
@@ -146,7 +146,7 @@ def train_eval_pycaret(target_scale_method: str):
 
 
 def train_eval_multi_hot(target_scale_method: str):
-    X_train, y_train, X_test, y_test = load_data_for_exp11()
+    X_train, y_train, X_test, y_test = load_data_for_multi_hot_representation()
     X_train['revenue'] = np.log1p(y_train) if target_scale_method == 'log' else y_train
     X_test['revenue'] = np.log1p(y_test) if target_scale_method == 'log' else y_test
 

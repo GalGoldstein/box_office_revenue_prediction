@@ -129,7 +129,7 @@ def create_multi_hot(row, mapping_dict):
     return multi_hot
 
 
-def load_data_for_exp11():
+def load_data_for_multi_hot_representation():
     """
     loads the train and test data ready for the baseline settings (features)
     :return: (X_train, y_train), (X_test, y_test). X is pd.DataFrame, y is pd.Series
@@ -148,4 +148,4 @@ def load_data_for_exp11():
 
 
 if __name__ == "__main__":
-    X_train, y_train, X_test, y_test = load_data_for_exp11()
+    X_train, y_train, X_test, y_test = load_data_for_multi_hot_representation()
