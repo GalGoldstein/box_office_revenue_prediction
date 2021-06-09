@@ -1,3 +1,9 @@
+import os
+os.system("pip install pycaret==2.3.1")
+os.system("pip install catboost==0.25.1")
+os.system("pip install lightgbm==3.2.1")
+os.system("pip install git+https://github.com/yotammarton/TransformDF2Numpy.git")
+
 import argparse
 import numpy as np
 import pandas as pd
@@ -5,7 +11,6 @@ from pickle import load
 from preprocess_data import prepare_df_for_ml
 from pycaret.regression import predict_model, load_model
 from train_eval import rmsle
-import os
 import sys
 
 # Parsing script arguments
