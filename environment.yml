@@ -4,6 +4,7 @@ dependencies:
   - pip
   - python=3.8
   - pip:
+      - setuptools
       - numpy
       - pandas
       - pycaret==2.3.1
