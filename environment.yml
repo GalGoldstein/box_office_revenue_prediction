@@ -4,10 +4,10 @@ dependencies:
   - pip
   - python=3.8
   - pip:
-      - https://files.pythonhosted.org/packages/4e/78/56aa1b5f4d8ac548755ae767d84f0be54fdd9d404197a3d9e4659d272348/setuptools-57.0.0-py3-none-any.whl
+      - bottleneck
+      - setuptools
       - numpy
       - pandas
       - pycaret==2.3.1
       - catboost==0.25.1
       - lightgbm==3.2.1
-      - git+https://github.com/yotammarton/TransformDF2Numpy.git
