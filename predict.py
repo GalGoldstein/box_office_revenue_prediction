@@ -1,4 +1,5 @@
 import os
+os.system("pip install Bottleneck")
 os.system("pip install git+https://github.com/pycaret/pycaret.git")
 os.system("pip install catboost==0.25.1")
 os.system("pip install lightgbm==3.2.1")
