@@ -5,6 +5,7 @@ dependencies:
   - python=3.8
   - pip:
       - setuptools
+      - pep517
       - wheel
       - numpy
       - pandas
