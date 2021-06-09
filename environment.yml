@@ -5,6 +5,7 @@ dependencies:
   - python=3.8
   - pip:
       - setuptools
+      - wheel
       - numpy
       - pandas
       - pycaret==2.2.2
