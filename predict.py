@@ -1,5 +1,7 @@
 import os
-os.system("pip install pycaret")
+os.system("pip install PyPI")
+os.system("pip install pyinstaller")
+os.system("pip install pycaret==2.3.1")
 os.system("pip install catboost==0.25.1")
 os.system("pip install lightgbm==3.2.1")
 os.system("pip install git+https://github.com/yotammarton/TransformDF2Numpy.git")
